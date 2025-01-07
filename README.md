@@ -379,6 +379,13 @@ New options to note:
 - `--image_aspect_ratio pad`: this pads the non-square images to square, instead of cropping them; it slightly reduces hallucination.
 - `--group_by_modality_length True`: this should only be used when your instruction tuning dataset contains both language (e.g. ShareGPT) and multimodal (e.g. LLaVA-Instruct). It makes the training sampler only sample a single modality (either image or language) during training, which we observe to speed up training by ~25%, and does not affect the final outcome.
 
+## Image Caption TTA
+
+1. make annotation file with ['create.py']
+2. set 'model_base' and 'model_path' in ['infer.py'], and generate caption with LlaVA
+3. make clustering labels with ['kmenas.py'] using image_embeds generated in step2
+4. training LlaVA model with ['tta_lora_roco.sh'] with labels generated in step3
+
 ## Evaluation
 
 In LLaVA-1.5, we evaluate models on a diverse set of 12 benchmarks. To ensure the reproducibility, we evaluate the models with greedy decoding. We do not evaluate using beam search to make the inference process consistent with the chat demo of real-time outputs.

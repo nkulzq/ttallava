@@ -30,8 +30,8 @@ args = type('Args', (), {
     "max_new_tokens": 512,
     "model": None
 })()
-outputs,_ = eval_model(args)
+outputs,image_embed = eval_model(args)
 print(outputs)
 
-json.dump(outputs, open("./vicuna_tta_new.json", 'w'))
-# json.dump(image_embeds, open("./image_embeds.json", 'w'))
+json.dump(outputs, open("./captions.json", 'w'))
+json.dump(image_embed, open("./image_embeds.json", 'w'))

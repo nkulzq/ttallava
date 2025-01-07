@@ -11,8 +11,7 @@ from transformers import GPT2Tokenizer, GPT2Model
 from sklearn.cluster import KMeans
 
 group_size = 32
-captions = json.load(open("./captions_epoch1.json", 'r'))
-image_embeds = json.load(open("./image_embeds_epoch1.json", 'r'))
+image_embeds = json.load(open("./image_embeds.json", 'r'))
 image_embeds = [image_embeds[i:i+group_size] for i in range(0, len(image_embeds), group_size)]
 labels = []
 for image_embed in image_embeds:
