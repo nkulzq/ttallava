@@ -1,14 +1,13 @@
 #!/bin/bash
 
-deepspeed --include localhost:3 llava/train/train_mem.py \
-    --lora_enable True --lora_r 128 --lora_alpha 256 --mm_projector_lr 2e-5 \
+deepspeed --include localhost:0 llava/train/train_mem.py \
+    --lora_enable True --lora_r 128 --lora_alpha 256 --mm_projector_lr 2e-6 \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path lmsys/vicuna-13b-v1.5 \
+    --model_name_or_path liuhaotian/llava-v1.5-13b \
     --version v1 \
-    --data_path ./playground/data/ann_validation.json \
+    --data_path ./playground/data/train_ann4llava_gen.json \
     --image_folder /home/wuyinjun/lzq/roco \
     --vision_tower openai/clip-vit-large-patch14-336 \
-    --pretrain_mm_mlp_adapter ./checkpoints/llava-v1.5-13b-pretrain/mm_projector.bin \
     --mm_projector_type mlp2x_gelu \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
@@ -16,14 +15,14 @@ deepspeed --include localhost:3 llava/train/train_mem.py \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/llava-v1.5-13b-lora-tta-vicuna-new \
+    --output_dir ./checkpoints/llava-v1.5-13b \
     --num_train_epochs 1 \
-    --per_device_train_batch_size 64 \
+    --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 50000 \
+    --save_steps 100 \
     --save_total_limit 1 \
     --learning_rate 2e-5 \
     --weight_decay 0. \

@@ -21,37 +21,7 @@ from llava.mm_utils import get_model_name_from_path
 from sklearn.cluster import KMeans
 from collections import Counter
 from torchclustermetrics import silhouette
-from transformers.debug_utils import DebugOption, DebugUnderflowOverflow
-from transformers.integrations.deepspeed import deepspeed_init, deepspeed_load_checkpoint, is_deepspeed_available
-from transformers.trainer_callback import (
-    CallbackHandler,
-    DefaultFlowCallback,
-    PrinterCallback,
-    ProgressCallback,
-    TrainerCallback,
-    TrainerControl,
-    TrainerState,
-)
-from transformers.trainer_pt_utils import (
-    DistributedTensorGatherer,
-    IterableDatasetShard,
-    LabelSmoother,
-    LengthGroupedSampler,
-    SequentialDistributedSampler,
-    distributed_broadcast_scalars,
-    distributed_concat,
-    find_batch_size,
-    get_dataloader_sampler,
-    get_model_param_count,
-    get_module_class_from_name,
-    get_parameter_names,
-    nested_concat,
-    nested_detach,
-    nested_numpify,
-    nested_xla_mesh_reduce,
-    reissue_pt_warnings,
-    remove_dummy_checkpoint,
-)
+
 from transformers.trainer import *
 
 
@@ -318,7 +288,19 @@ class LLaVATrainer(Trainer):
                 self.model.config.save_pretrained(output_dir)
                 torch.save(weight_to_save, os.path.join(output_dir, f'mm_projector.bin'))
         else:
-            super(LLaVATrainer, self)._save_checkpoint(model, trial, metrics)
+            print(self.state.global_step)
+            checkpoint_folder = self.args.output_dir + "/ckpt_{}".format(self.state.global_step)
+            state_dict = get_peft_state_maybe_zero_3(
+                self.model.named_parameters(), self.args.lora_bias
+            )
+            non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
+                self.model.named_parameters()
+            )
+            if self.args.local_rank == 0 or self.args.local_rank == -1:
+                self.model.config.save_pretrained(checkpoint_folder)
+                self.model.save_pretrained(checkpoint_folder, state_dict=state_dict)
+                torch.save(non_lora_state_dict, os.path.join(checkpoint_folder, 'non_lora_trainables.bin'))
+            # super(LLaVATrainer, self)._save_checkpoint(model, trial, metrics)
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         if getattr(self.args, 'tune_mm_mlp_adapter', False):
@@ -348,7 +330,7 @@ class LLaVATrainer(Trainer):
 
         caption_embeds = outputs["hidden_states"][-1][:,-1,:].type(torch.float32)
         label_counts = Counter(classes)
-        min_samples = 5
+        min_samples = 3
         satisfies_min_samples = all(count >= min_samples for count in label_counts.values())
         if labels is not None:
             unwrapped_model = unwrap_model(model)
@@ -361,7 +343,7 @@ class LLaVATrainer(Trainer):
             else:
                 loss = self.label_smoother(outputs, labels)
         elif classes is not None:
-            loss = 1 - silhouette.score(caption_embeds, classes)
+            loss = 1 - silhouette.score(caption_embeds, classes, loss=True)
             if not satisfies_min_samples:
                 print('skip')
                 loss.detach()
